@@ -64,19 +64,20 @@ class TurtleBot:
 
         vel_msg = Twist()
 
-        if self.euclidean_distance(goal_pose) >= distance_tolerance:
+        vel_msg.linear.y = 0
+        vel_msg.linear.z = 0
+        vel_msg.angular.x = 0
+        vel_msg.angular.y = 0
+
+        while self.euclidean_distance(goal_pose) >= distance_tolerance:
 
             # Porportional controller.
             # https://en.wikipedia.org/wiki/Proportional_control
 
             # Linear velocity in the x-axis.
             vel_msg.linear.x = self.linear_vel(goal_pose)
-            vel_msg.linear.y = 0
-            vel_msg.linear.z = 0
 
             # Angular velocity in the z-axis.
-            vel_msg.angular.x = 0
-            vel_msg.angular.y = 0
             vel_msg.angular.z = self.angular_vel(goal_pose)
 
             # Publishing our vel_msg
@@ -85,23 +86,23 @@ class TurtleBot:
             # Publish at the desired rate.
             self.rate.sleep()
 
-        else:
-            if abs(self.steering_angle(goal_pose) - self.pose.theta) >= angular_tolerance:
-                # Linear velocity in the x-axis.
-                vel_msg.linear.x = 0
-                vel_msg.linear.y = 0
-                vel_msg.linear.z = 0
+        # Linear velocity in the x-axis.
+        vel_msg.linear.x = 0
 
-                # Angular velocity in the z-axis.
-                vel_msg.angular.x = 0
-                vel_msg.angular.y = 0
-                vel_msg.angular.z = self.angular_vel(goal_pose)
-            
-            else:
-                # Stopping our robot after the movement is over.
-                vel_msg.linear.x = 0
-                vel_msg.angular.z = 0
-                self.velocity_publisher.publish(vel_msg)
+        while abs(self.steering_angle(goal_pose) - self.pose.theta) > angular_tolerance:
+
+            # Angular velocity in the z-axis.
+            vel_msg.angular.z = self.angular_vel(goal_pose)
+
+            # Publishing our vel_msg
+            self.velocity_publisher.publish(vel_msg)
+
+            # Publish at the desired rate.
+            self.rate.sleep()
+
+        # Stopping our robot after the movement is over.
+        vel_msg.angular.z = 0
+        self.velocity_publisher.publish(vel_msg)
 
         # If we press control + C, the node will stop.
         rospy.spin()
